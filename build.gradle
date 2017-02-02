@@ -1,3 +1,5 @@
+import org.ajoberstar.gradle.git.release.opinion.Strategies
+
 // tag::buildfile1[]
 buildscript {
     repositories {
@@ -11,7 +13,7 @@ buildscript {
     ext.dokka_version = '0.9.9'
 
     dependencies {
-        classpath 'com.mooregreatsoftware:gradle-defaults:3.0.0'
+        classpath 'com.mooregreatsoftware:gradle-defaults:4.0.0-rc.1'
 
         // Kotlin support
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
@@ -50,11 +52,26 @@ defaults {
     copyrightYears = '2014-2016'
 
     vcsWriteUrl = "git@github.com:jdigger/gradle-defaults.git"
+
+    lombok.version = "1.16.12"
+    checkerFramework.version = "2.1.8"
 }
 // end::buildfile1[]
 
+apply plugin: 'org.ajoberstar.release-opinion'
+
+release {
+    versionStrategy Strategies.DEVELOPMENT
+    versionStrategy Strategies.PRE_RELEASE
+    versionStrategy Strategies.FINAL
+}
+
 apply plugin: "kotlin"
 apply plugin: 'org.jetbrains.dokka'
+
+sourceSets {
+    main.java.srcDirs += 'src/main/kotlin'
+}
 
 apply plugin: 'org.asciidoctor.convert'
 
@@ -84,6 +101,12 @@ dokka {
 //    sourceDirs = files('src/main/kotlin')
 }
 
+tasks.withType(Test) {
+    scanForTestClasses = false
+    include "**/*Spec.class"
+    exclude "**/Abstract*Spec.class"
+}
+
 repositories {
     maven {
         name = 'Plugin Portal'
@@ -93,9 +116,10 @@ repositories {
 
 dependencies {
     compile 'org.ajoberstar:gradle-git:1.3.2'
-    compile 'org.ajoberstar:gradle-imports:1.0.1'
     compile 'gradle.plugin.nl.javadude.gradle.plugins:license-gradle-plugin:0.12.1'
-    compile 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.4'
+    compile 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7'
+
+    compile 'io.javaslang:javaslang:2.0.5'
 
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
@@ -108,6 +132,18 @@ dependencies {
     testCompile 'com.netflix.nebula:nebula-test:4.2.2'
     testCompile "org.gradle:gradle-tooling-api:${gradle.gradleVersion}" // hack to get the source
     testCompile "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version" // hack to get the source
+
+    // tiny http server for testing
+    testCompile 'org.nanohttpd:nanohttpd:2.3.1'
+
+    // Lombok and Checker Framework support for tests
+    def lombok_version = "1.16.8"
+    def checker_version = "2.1.8"
+    testCompile "org.projectlombok:lombok:$lombok_version"
+    testCompile "org.checkerframework:checker:$checker_version"
+    testCompile "org.checkerframework:checker-qual:$checker_version"
+    testCompile "org.checkerframework:jdk8:$checker_version"
+    testCompile "org.checkerframework:compiler:$checker_version"
 }
 
 wrapper {
